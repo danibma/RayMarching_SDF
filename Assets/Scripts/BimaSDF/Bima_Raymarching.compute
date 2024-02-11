@@ -1,0 +1,132 @@
+#pragma kernel CSMain
+
+static const float MINIMUM_HIT_DISTANCE = 0.001;
+static const float MAXIMUM_TRACE_DISTANCE = 100.0;
+
+struct Ray
+{
+	float3 Origin;
+    float3 Direction;
+};
+
+struct ShapeData
+{
+	float3 position;
+	float3 scale;
+	float3 colour;
+	int shapeType;
+};
+StructuredBuffer<ShapeData> _Shapes;
+int _ShapesNum;
+
+Texture2D<float4> _Source;
+RWTexture2D<float4> _Dest;
+
+float4 _LightPos;
+float4x4 _CameraToWorld;
+float4x4 _CameraInverseProjection;
+
+// https://iquilezles.org/articles/smin/
+float smin( float a, float b, float k )
+{
+    float h = max(k-abs(a - b), 0.0 ) / k;
+    return min(a, b) - h * h * k * 0.25;
+}
+
+// https://iquilezles.org/articles/distfunctions/
+float SphereSDF(float3 p, float3 center, float radius)
+{
+	return length(p - center) - radius;
+}
+
+float TorusSDF(float3 p, float2 t)
+{
+  float2 q = float2(length(p.xz) - t.x, p.y);
+  return length(q) - t.y;
+}
+
+float BoxSDF(float3 p, float3 b)
+{
+  float3 q = abs(p) - b;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
+Ray CreateRay(float2 uv)
+{
+	Ray ray;
+    ray.Origin = mul(_CameraToWorld, float4(0, 0, -2, 1.0f)).xyz; // Camera pos
+    ray.Direction = mul(_CameraToWorld, mul(_CameraInverseProjection, float4(uv, 1, 1))).xyz;
+    ray.Direction = normalize(ray.Direction);
+
+    return ray;
+}
+
+float MapTheWorld(in float3 p)
+{
+    //float displacement = sin(5.0 * p.x) * sin(5.0 * p.y) * sin(5.0 * p.z) * 0.25;
+    //float sphere_0 = SphereSDF(p, float3(-0.5f, 0.0f, 0.0f), 1.0);
+    float result = 0.0f;
+    //for (int i = 0; i < _ShapesNum; ++i)
+    {
+		//ShapeData shape = _Shapes[i];
+	    float firstSphere = BoxSDF(p, float3(2.0f, 2.0f, 0.5f));
+		float secondSphere = SphereSDF(p, _Shapes[1].position, 1.0);
+        result = smin(firstSphere, secondSphere, 1.0f);
+        //result = max(SphereSDF(p, float3(0.0f, 1.8f, 0.0f), 1.0), result);
+    }
+
+    return result;
+}
+
+float3 CalculateNormal(in float3 p)
+{
+    const float3 small_step = float3(0.001, 0.0, 0.0);
+
+    float gradient_x = MapTheWorld(p + small_step.xyy) - MapTheWorld(p - small_step.xyy);
+    float gradient_y = MapTheWorld(p + small_step.yxy) - MapTheWorld(p - small_step.yxy);
+    float gradient_z = MapTheWorld(p + small_step.yyx) - MapTheWorld(p - small_step.yyx);
+
+    float3 normal = float3(gradient_x, gradient_y, gradient_z);
+
+    return normalize(normal);
+}
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    uint width, height;
+    _Dest.GetDimensions(width, height);
+
+    _Dest[id.xy] = _Source[id.xy];
+    //_Dest[id.xy] = 1.0f;
+
+    float2 uv = (id.xy / (float2(width, height))) * 2.0f - 1.0f;
+    Ray ray = CreateRay(uv);
+
+    float distanceTraveled = 0.0;
+    while (distanceTraveled < MAXIMUM_TRACE_DISTANCE)
+    {
+        // Calculate our current position along the ray
+        float3 current_position = ray.Origin + distanceTraveled * ray.Direction;
+
+        float distance_to_closest = MapTheWorld(current_position);
+
+        if (distance_to_closest < MINIMUM_HIT_DISTANCE) // hit
+        {
+            float3 normal = CalculateNormal(current_position);
+
+            // Calculate the unit direction vector that points from the point of intersection to the light source
+            float3 directionToLight = normalize(current_position - _LightPos.xyz);
+
+            float diffuse = saturate(dot(directionToLight, normal));
+
+            float3 color = float3(0.2, 0.2, 0.2); // TEMP
+            float3 finalColor = color * diffuse;
+            _Dest[id.xy] = float4(finalColor, 1.0f);
+            break;
+        }
+
+        // accumulate the distance traveled thus far
+        distanceTraveled += distance_to_closest;
+    }
+}
