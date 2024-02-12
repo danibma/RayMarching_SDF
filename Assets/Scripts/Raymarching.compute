@@ -41,9 +41,9 @@ float SphereSDF(float3 p, float3 center, float radius)
 	return length(p - center) - radius;
 }
 
-float TorusSDF(float3 p, float2 t)
+float TorusSDF(float3 p, float3 center, float2 t)
 {
-  float2 q = float2(length(p.xz) - t.x, p.y);
+  float2 q = float2(length(p.xz - center.xz) - t.x, p.y - center.y);
   return length(q) - t.y;
 }
 
@@ -76,11 +76,14 @@ float4 MapTheWorld(in float3 p)
 			sdf = SphereSDF(p, shape.position, shape.scale.x);
         else if (shape.shapeType == 1)
             sdf = BoxSDF(p, shape.position, shape.scale);
+        else if (shape.shapeType == 2)
+            sdf = TorusSDF(p, shape.position, shape.scale.xy);
 
         if (shape.operation == 0)
         {
+            if (sdf < result.w)
+        		result.xyz = shape.colour;
 	        result.w = min(sdf, result.w);
-            result.xyz = shape.colour;
         }
         else if (shape.operation == 1)
         {
@@ -110,6 +113,19 @@ float3 CalculateNormal(in float3 p)
     return normalize(normal);
 }
 
+float Shadow(in Ray ray, float mint, float maxt)
+{
+    float t = mint;
+    for(int i = 0; i < 256 && t < maxt; i++)
+    {
+        float4 h = MapTheWorld(ray.Origin + t * ray.Direction);
+        if(h.w < MINIMUM_HIT_DISTANCE)
+            return 0.3f;
+        t += h.w;
+    }
+    return 1.0;
+}
+
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
@@ -117,7 +133,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     _Dest.GetDimensions(width, height);
 
     _Dest[id.xy] = _Source[id.xy];
-    //_Dest[id.xy] = 1.0f;
 
     float2 uv = (id.xy / (float2(width, height))) * 2.0f - 1.0f;
     Ray ray = CreateRay(uv);
@@ -135,12 +150,17 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             float3 normal = CalculateNormal(current_position);
 
             // Calculate the unit direction vector that points from the point of intersection to the light source
-            float3 directionToLight = normalize(current_position - _LightPos.xyz);
+            float3 directionToLight = normalize(_LightPos.xyz - current_position);
 
             float diffuse = saturate(dot(directionToLight, normal));
 
+            Ray shadowRay;
+            shadowRay.Origin = current_position;
+            shadowRay.Direction = directionToLight;
+            float shadow = Shadow(shadowRay, 0.01f, 1000.0f);
+
             float3 color = sceneInfo.xyz;
-            float3 finalColor = color * diffuse;
+            float3 finalColor = color * diffuse * shadow;
             _Dest[id.xy] = float4(finalColor, 1.0f);
             break;
         }
