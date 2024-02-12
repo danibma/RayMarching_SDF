@@ -14,7 +14,9 @@ struct ShapeData
 	float3 position;
 	float3 scale;
 	float3 colour;
+    float blendStrength;
 	int shapeType;
+    int operation;
 };
 StructuredBuffer<ShapeData> _Shapes;
 int _ShapesNum;
@@ -45,9 +47,9 @@ float TorusSDF(float3 p, float2 t)
   return length(q) - t.y;
 }
 
-float BoxSDF(float3 p, float3 b)
+float BoxSDF(float3 p, float3 center, float3 b)
 {
-  float3 q = abs(p) - b;
+  float3 q = abs(p - center) - b;
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
@@ -61,18 +63,35 @@ Ray CreateRay(float2 uv)
     return ray;
 }
 
-float MapTheWorld(in float3 p)
+// first 3 floats = color
+// last float = distance
+float4 MapTheWorld(in float3 p)
 {
-    //float displacement = sin(5.0 * p.x) * sin(5.0 * p.y) * sin(5.0 * p.z) * 0.25;
-    //float sphere_0 = SphereSDF(p, float3(-0.5f, 0.0f, 0.0f), 1.0);
-    float result = 0.0f;
-    //for (int i = 0; i < _ShapesNum; ++i)
+    float4 result = MAXIMUM_TRACE_DISTANCE;
+    for (int i = 0; i < _ShapesNum; ++i)
     {
-		//ShapeData shape = _Shapes[i];
-	    float firstSphere = BoxSDF(p, float3(2.0f, 2.0f, 0.5f));
-		float secondSphere = SphereSDF(p, _Shapes[1].position, 1.0);
-        result = smin(firstSphere, secondSphere, 1.0f);
-        //result = max(SphereSDF(p, float3(0.0f, 1.8f, 0.0f), 1.0), result);
+		ShapeData shape = _Shapes[i];
+        float sdf = 0.0f;
+        if (shape.shapeType == 0)
+			sdf = SphereSDF(p, shape.position, shape.scale.x);
+        else if (shape.shapeType == 1)
+            sdf = BoxSDF(p, shape.position, shape.scale);
+
+        if (shape.operation == 0)
+        {
+	        result.w = min(sdf, result.w);
+            result.xyz = shape.colour;
+        }
+        else if (shape.operation == 1)
+        {
+            if (result.w > sdf)
+                result.xyz = shape.colour;
+	        result.w = smin(result.w, sdf, shape.blendStrength);
+        }
+        else if (shape.operation == 2)
+        {
+			result.w = max(result.w, -sdf);
+        }
     }
 
     return result;
@@ -82,9 +101,9 @@ float3 CalculateNormal(in float3 p)
 {
     const float3 small_step = float3(0.001, 0.0, 0.0);
 
-    float gradient_x = MapTheWorld(p + small_step.xyy) - MapTheWorld(p - small_step.xyy);
-    float gradient_y = MapTheWorld(p + small_step.yxy) - MapTheWorld(p - small_step.yxy);
-    float gradient_z = MapTheWorld(p + small_step.yyx) - MapTheWorld(p - small_step.yyx);
+    float gradient_x = MapTheWorld(p + small_step.xyy).w - MapTheWorld(p - small_step.xyy).w;
+    float gradient_y = MapTheWorld(p + small_step.yxy).w - MapTheWorld(p - small_step.yxy).w;
+    float gradient_z = MapTheWorld(p + small_step.yyx).w - MapTheWorld(p - small_step.yyx).w;
 
     float3 normal = float3(gradient_x, gradient_y, gradient_z);
 
@@ -109,9 +128,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         // Calculate our current position along the ray
         float3 current_position = ray.Origin + distanceTraveled * ray.Direction;
 
-        float distance_to_closest = MapTheWorld(current_position);
+        float4 sceneInfo = MapTheWorld(current_position);
 
-        if (distance_to_closest < MINIMUM_HIT_DISTANCE) // hit
+        if (sceneInfo.w < MINIMUM_HIT_DISTANCE) // hit
         {
             float3 normal = CalculateNormal(current_position);
 
@@ -120,13 +139,13 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
             float diffuse = saturate(dot(directionToLight, normal));
 
-            float3 color = float3(0.2, 0.2, 0.2); // TEMP
+            float3 color = sceneInfo.xyz;
             float3 finalColor = color * diffuse;
             _Dest[id.xy] = float4(finalColor, 1.0f);
             break;
         }
 
         // accumulate the distance traveled thus far
-        distanceTraveled += distance_to_closest;
+        distanceTraveled += sceneInfo.w;
     }
 }

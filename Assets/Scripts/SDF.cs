@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [ExecuteInEditMode, ImageEffectAllowedInSceneView]
@@ -67,17 +68,21 @@ public class SDF : MonoBehaviour
 
 	private void CreateScene()
 	{
-		List<Shape> allShapes = new List<Shape>(FindObjectsOfType<Shape>());
+		List<SDF_Shape> allShapes = new List<SDF_Shape>(FindObjectsOfType<SDF_Shape>());
+		var orderedShapes = allShapes.OrderBy(shape => shape.operation).ToList();
+
 		ShapeData[] shapeData = new ShapeData[allShapes.Count];
 		for (int i = 0; i < allShapes.Count; ++i)
 		{
-			var shape = allShapes[i];
+			var shape = orderedShapes[i];
 			shapeData[i] = new ShapeData()
 			{
 				position = shape.Position,
 				scale = shape.Scale,
 				colour = new Vector3(shape.colour.r, shape.colour.g, shape.colour.b),
-				shapeType = (int)shape.shapeType
+				blendStrength = shape.blendStrength,
+				shapeType = (int)shape.shapeType,
+				operation = (int)shape.operation
 			};
 		}
 
@@ -91,11 +96,13 @@ public class SDF : MonoBehaviour
 		public Vector3 position;
 		public Vector3 scale;
 		public Vector3 colour;
+		public float blendStrength;
 		public int shapeType;
+		public int operation;
 
 		public static int GetSize()
 		{
-			return sizeof(float) * 9 + sizeof(int) * 1;
+			return sizeof(float) * 10 + sizeof(int) * 2;
 		}
 	}
 }
