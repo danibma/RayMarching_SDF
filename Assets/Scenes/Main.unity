@@ -149,7 +149,7 @@ Transform:
   m_GameObject: {fileID: 30817617}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.5, y: 4.45, z: 2.73}
+  m_LocalPosition: {x: 1.5, y: 1.31, z: 2.73}
   m_LocalScale: {x: 1.7425, y: 1.7425, z: 1.7425}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -172,6 +172,7 @@ MonoBehaviour:
   colour: {r: 1, g: 0.45249465, b: 0, a: 1}
   blendStrength: 1
   isAnimated: 0
+  animateSphereRadius: 0
 --- !u!1 &258060760
 GameObject:
   m_ObjectHideFlags: 0
@@ -206,6 +207,7 @@ MonoBehaviour:
   colour: {r: 1, g: 0.4481132, b: 0.4481132, a: 1}
   blendStrength: 0
   isAnimated: 0
+  animateSphereRadius: 0
 --- !u!4 &258060762
 Transform:
   m_ObjectHideFlags: 0
@@ -255,6 +257,7 @@ MonoBehaviour:
   colour: {r: 0, g: 1, b: 0.6969085, a: 1}
   blendStrength: 1
   isAnimated: 0
+  animateSphereRadius: 0
 --- !u!4 &313130262
 Transform:
   m_ObjectHideFlags: 0
@@ -304,6 +307,7 @@ MonoBehaviour:
   colour: {r: 1, g: 1, b: 1, a: 1}
   blendStrength: 1
   isAnimated: 0
+  animateSphereRadius: 0
 --- !u!4 &472544617
 Transform:
   m_ObjectHideFlags: 0
@@ -568,6 +572,7 @@ MonoBehaviour:
   colour: {r: 0, g: 1, b: 0.6969085, a: 1}
   blendStrength: 1
   isAnimated: 0
+  animateSphereRadius: 0
 --- !u!1 &1550347070
 GameObject:
   m_ObjectHideFlags: 0
@@ -602,6 +607,7 @@ MonoBehaviour:
   colour: {r: 0.704646, g: 1, b: 0, a: 1}
   blendStrength: 1
   isAnimated: 0
+  animateSphereRadius: 0
 --- !u!4 &1550347072
 Transform:
   m_ObjectHideFlags: 0
@@ -651,6 +657,7 @@ MonoBehaviour:
   colour: {r: 0.4433962, g: 0, b: 0.3725404, a: 1}
   blendStrength: 1
   isAnimated: 0
+  animateSphereRadius: 1
 --- !u!4 &1612524579
 Transform:
   m_ObjectHideFlags: 0
@@ -661,7 +668,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 13.12, y: 8.58, z: -10.35}
-  m_LocalScale: {x: 2.812, y: 2.812, z: 2.812}
+  m_LocalScale: {x: -2, y: -2, z: -2}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -700,6 +707,7 @@ MonoBehaviour:
   colour: {r: 0, g: 0.85306, b: 1, a: 1}
   blendStrength: 1
   isAnimated: 0
+  animateSphereRadius: 0
 --- !u!4 &1689849199
 Transform:
   m_ObjectHideFlags: 0
@@ -749,6 +757,7 @@ MonoBehaviour:
   colour: {r: 0, g: 1, b: 0.6969085, a: 1}
   blendStrength: 1
   isAnimated: 1
+  animateSphereRadius: 0
 --- !u!4 &1799511551
 Transform:
   m_ObjectHideFlags: 0
@@ -798,6 +807,7 @@ MonoBehaviour:
   colour: {r: 0.4433962, g: 0, b: 0.3725404, a: 1}
   blendStrength: 1
   isAnimated: 0
+  animateSphereRadius: 0
 --- !u!4 &1954834214
 Transform:
   m_ObjectHideFlags: 0
@@ -862,6 +872,7 @@ MonoBehaviour:
   colour: {r: 1, g: 1, b: 1, a: 1}
   blendStrength: 1
   isAnimated: 0
+  animateSphereRadius: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

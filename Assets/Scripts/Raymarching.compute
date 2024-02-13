@@ -19,6 +19,7 @@ struct ShapeData
     int operation;
 
     int isAnimated;
+    int animateSphereRadius;
 };
 StructuredBuffer<ShapeData> _Shapes;
 int _ShapesNum;
@@ -42,7 +43,7 @@ float smin( float a, float b, float k )
 // https://iquilezles.org/articles/distfunctions/
 float SphereSDF(float3 p, float3 center, float radius)
 {
-	return length(p - center) - radius;
+	return (length(p - center) - radius) * 0.5f;
 }
 
 float TorusSDF(float3 p, float3 center, float2 t)
@@ -80,13 +81,20 @@ float4 MapTheWorld(in float3 p)
         if (shape.isAnimated)
             center.y += sin(center.x * 0.5f + _Time) * 1.5f;
 
-        float sdf = 0.0f;
+        float3 size = shape.scale;
+        if (shape.animateSphereRadius)
+        {
+	        size.x += 5.0f + 0.3f * sin(p.x * 2.0f + _Time) * sin(p.z * 2.0f + _Time) * sin(p.y * 2.0f + _Time);
+            center.x += sin(center.y * 0.5f + _Time) * 1.5f;
+        }
+
+		float sdf = 0.0f;
         if (shape.shapeType == 0)
-			sdf = SphereSDF(p, center, shape.scale.x);
+			sdf = SphereSDF(p, center, size.x);
         else if (shape.shapeType == 1)
-            sdf = BoxSDF(p, center, shape.scale);
+            sdf = BoxSDF(p, center, size);
         else if (shape.shapeType == 2)
-            sdf = TorusSDF(p, center, shape.scale.xy);
+            sdf = TorusSDF(p, center, size.xy);
 
         if (shape.operation == 0)
         {
@@ -129,6 +137,8 @@ float3 CalculateNormal(in float3 p)
     return normalize(normal);
 }
 
+#define SHADOW_COLOR_INTENSITY 0.1f
+
 // https://iquilezles.org/articles/rmshadows/
 float Shadow(in Ray ray, float mint, float maxt, float k)
 {
@@ -138,11 +148,11 @@ float Shadow(in Ray ray, float mint, float maxt, float k)
     {
         float4 h = MapTheWorld(ray.Origin + t * ray.Direction);
         if(h.w < MINIMUM_HIT_DISTANCE)
-            return 0.1f;
+            return SHADOW_COLOR_INTENSITY;
         res = min(res, k * h.w / t);
         t += h.w;
     }
-    return res;
+    return res + SHADOW_COLOR_INTENSITY;
 }
 
 [numthreads(8,8,1)]
@@ -176,7 +186,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             Ray shadowRay;
             shadowRay.Origin = current_position;
             shadowRay.Direction = directionToLight;
-            float shadow = Shadow(shadowRay, 0.01f, 100.0f, 16);
+            float shadow = Shadow(shadowRay, 0.01f, 100.0f, 32);
 
             float3 color = sceneInfo.xyz;
             float3 finalColor = color * diffuse * shadow;

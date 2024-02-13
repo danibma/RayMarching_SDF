@@ -15,6 +15,7 @@ public class SDF_Shape : MonoBehaviour
 	public float blendStrength;
 
 	public bool isAnimated;
+	public bool animateSphereRadius;
 
 	public Vector3 Position
 	{

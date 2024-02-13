@@ -93,6 +93,7 @@ public class SDF : MonoBehaviour
 				shapeType = (int)shape.shapeType,
 				operation = (int)shape.operation,
 				isAnimated = shape.isAnimated ? 1 : 0,
+				animateSphereRadius = shape.animateSphereRadius ? 1 : 0,
 			};
 		}
 
@@ -111,10 +112,11 @@ public class SDF : MonoBehaviour
 		public int operation;
 
 		public int isAnimated;
+		public int animateSphereRadius;
 
 		public static int GetSize()
 		{
-			return sizeof(float) * 10 + sizeof(int) * 3;
+			return sizeof(float) * 10 + sizeof(int) * 4;
 		}
 	}
 }
