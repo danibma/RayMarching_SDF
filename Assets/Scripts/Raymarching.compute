@@ -89,7 +89,14 @@ float4 MapTheWorld(in float3 p)
         {
             if (result.w > sdf)
                 result.xyz = shape.colour;
+
+        	float oldDistance = abs(result.w - sdf);
 	        result.w = smin(result.w, sdf, shape.blendStrength);
+
+            bool bIsNewHit = result.w < MINIMUM_HIT_DISTANCE;
+            bool bIsOldClose = (sdf - 1.0f) < MINIMUM_HIT_DISTANCE;
+            if (bIsNewHit && bIsOldClose)
+				result.xyz = lerp(shape.colour, result.xyz, oldDistance);
         }
         else if (shape.operation == 2)
         {
@@ -122,7 +129,7 @@ float Shadow(in Ray ray, float mint, float maxt, float k)
     {
         float4 h = MapTheWorld(ray.Origin + t * ray.Direction);
         if(h.w < MINIMUM_HIT_DISTANCE)
-            return 0.0f;
+            return 0.1f;
         res = min(res, k * h.w / t);
         t += h.w;
     }
