@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class SDF_Shape : MonoBehaviour
 {
@@ -12,6 +13,8 @@ public class SDF_Shape : MonoBehaviour
 	public Color colour = Color.white;
 	[Range(0.01f, 1)]
 	public float blendStrength;
+
+	public bool isAnimated;
 
 	public Vector3 Position
 	{

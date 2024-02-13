@@ -17,6 +17,8 @@ struct ShapeData
     float blendStrength;
 	int shapeType;
     int operation;
+
+    int isAnimated;
 };
 StructuredBuffer<ShapeData> _Shapes;
 int _ShapesNum;
@@ -27,6 +29,8 @@ RWTexture2D<float4> _Dest;
 float4 _LightPos;
 float4x4 _CameraToWorld;
 float4x4 _CameraInverseProjection;
+
+float _Time;
 
 // https://iquilezles.org/articles/smin/
 float smin( float a, float b, float k )
@@ -71,13 +75,18 @@ float4 MapTheWorld(in float3 p)
     for (int i = 0; i < _ShapesNum; ++i)
     {
 		ShapeData shape = _Shapes[i];
+
+        float3 center = shape.position;
+        if (shape.isAnimated)
+            center.y += sin(center.x * 0.5f + _Time) * 1.5f;
+
         float sdf = 0.0f;
         if (shape.shapeType == 0)
-			sdf = SphereSDF(p, shape.position, shape.scale.x);
+			sdf = SphereSDF(p, center, shape.scale.x);
         else if (shape.shapeType == 1)
-            sdf = BoxSDF(p, shape.position, shape.scale);
+            sdf = BoxSDF(p, center, shape.scale);
         else if (shape.shapeType == 2)
-            sdf = TorusSDF(p, shape.position, shape.scale.xy);
+            sdf = TorusSDF(p, center, shape.scale.xy);
 
         if (shape.operation == 0)
         {

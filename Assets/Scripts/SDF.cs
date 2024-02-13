@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 [ExecuteInEditMode, ImageEffectAllowedInSceneView]
@@ -19,7 +20,10 @@ public class SDF : MonoBehaviour
 	private static readonly int ShapesNum = Shader.PropertyToID("_ShapesNum");
 	private static readonly int LightPos = Shader.PropertyToID("_LightPos");
 	private static readonly int CameraToWorld = Shader.PropertyToID("_CameraToWorld");
-	private static readonly int CameraInverseProj = Shader.PropertyToID("_CameraInverseProjection");
+	private static readonly int CameraInverseProj = Shader.PropertyToID
+		("_CameraInverseProjection");
+	private static readonly int Time = Shader.PropertyToID("_Time");
+
 
 	private void Init()
 	{
@@ -42,6 +46,8 @@ public class SDF : MonoBehaviour
 		raymarchingShader.SetMatrix(CameraToWorld, cam.cameraToWorldMatrix);
 		raymarchingShader.SetMatrix(CameraInverseProj, cam.projectionMatrix.inverse);
 
+		raymarchingShader.SetFloat(Time, (float)EditorApplication.timeSinceStartup);
+
 		raymarchingShader.GetKernelThreadGroupSizes(0, out var threadNumX, out var threadNumY, out _);
 		int threadGroupsX = Mathf.CeilToInt(cam.pixelWidth / threadNumX);
 		int threadGroupsY = Mathf.CeilToInt(cam.pixelHeight / threadNumY);
@@ -50,6 +56,9 @@ public class SDF : MonoBehaviour
 		Graphics.Blit(target, destination);
 
 		shapesBuffer.Dispose();
+
+		// Force the scene view to update
+		SceneView.RepaintAll();
 	}
 
 	private void CreateRenderTexture()
@@ -82,7 +91,8 @@ public class SDF : MonoBehaviour
 				colour = new Vector3(shape.colour.r, shape.colour.g, shape.colour.b),
 				blendStrength = shape.blendStrength,
 				shapeType = (int)shape.shapeType,
-				operation = (int)shape.operation
+				operation = (int)shape.operation,
+				isAnimated = shape.isAnimated ? 1 : 0,
 			};
 		}
 
@@ -100,9 +110,11 @@ public class SDF : MonoBehaviour
 		public int shapeType;
 		public int operation;
 
+		public int isAnimated;
+
 		public static int GetSize()
 		{
-			return sizeof(float) * 10 + sizeof(int) * 2;
+			return sizeof(float) * 10 + sizeof(int) * 3;
 		}
 	}
 }
